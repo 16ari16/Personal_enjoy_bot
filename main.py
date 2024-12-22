@@ -1,7 +1,11 @@
 import logging
 import random
+
+import game
 import requests
 import json
+
+from numpy import number
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 import openai
@@ -10,18 +14,18 @@ import openai
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Токены и API ключи
-BOT_TOKEN = ''
-OMDB_API_KEY = 'your_omdb_api_key'
+BOT_TOKEN = '8046195893:AAEfNDOtX4NYFaPqnF_oEqJ8YXjUQYHg1pA'
+OMDB_API_KEY = 'http://www.omdbapi.com/?i=tt3896198&apikey=1e3f1394'
 TRANSLATION_API_URL = "https://api.mymemory.translated.net/get"
 DOG_API_URL = "https://dog.ceo/api/breeds/image/random"
 CAT_API_URL = "https://api.thecatapi.com/v1/images/search"
 ADVICE_API_URL = "https://api.adviceslip.com/advice"
 FACT_API_URL = "https://uselessfacts.jsph.pl/random.json?language=en"
 MUSIC_API_URL = "https://api.deezer.com/chart"
-OPENAI_API_KEY = 'your_openai_api_key'
-UNSPLASH_API_KEY = 'your_unsplash_api_key'  # Ваш API ключ для Unsplash
+OPENAI_API_KEY = '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'
+UNSPLASH_API_KEY = '5qrxk0cVaix-mnYTr_auuvGumzWp2eBQlp5_ZnPAXLE'  # Ваш API ключ для Unsplash
 UNSPLASH_API_URL = 'https://api.unsplash.com/photos/random'  # Для поиска изображений
-NEWS_API_KEY = 'your_news_api_key'  # API для новостей
+NEWS_API_KEY = 'af446556a648456b999fe37f01943068'  # API для новостей
 QUOTABLE_API_URL = "https://api.quotable.io/random"
 
 # Основная функция для запуска бота
@@ -52,23 +56,20 @@ async def weather(update: Update, context: CallbackContext) -> None:
     if len(context.args) == 0:
         await update.message.reply_text("Укажите город для поиска погоды, например: /weather Москва")
         return
+
     city = " ".join(context.args)
     try:
-        response = requests.get(f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid=your_weather_api_key&units=metric&lang=ru')
-        weather_data = response.json()
-        if weather_data.get("cod") != 200:
-            await update.message.reply_text("Город не найден!")
+        # Получаем текстовый ответ
+        response = requests.get(f"https://wttr.in/{city}?format=🌀 %C\n🌡 %t\n🌬 Ветер: %w\n💧 Влажность: %h")
+        if response.status_code == 200:
+            weather_data = response.text
+            await update.message.reply_text(f"Погода в {city}:\n{weather_data}")
         else:
-            main = weather_data["main"]
-            temp = main["temp"]
-            description = weather_data["weather"][0]["description"]
-            humidity = main["humidity"]
-            wind_speed = weather_data["wind"]["speed"]
-            weather_message = f"Погода в {city}:\nТемпература: {temp}°C\nОписание: {description}\nВлажность: {humidity}%\nСкорость ветра: {wind_speed} м/с"
-            await update.message.reply_text(weather_message)
+            await update.message.reply_text(
+                "Не удалось получить данные о погоде. Убедитесь, что вы указали правильное название города.")
     except Exception as e:
         logging.error(f"Ошибка при получении погоды: {e}")
-        await update.message.reply_text("Не удалось получить данные о погоде.")
+        await update.message.reply_text("Произошла ошибка при запросе погоды. Попробуйте позже.")
 
 # Случайные факты
 async def fact(update: Update, context: CallbackContext) -> None:
@@ -109,10 +110,44 @@ async def random_number(update: Update, context: CallbackContext) -> None:
     random_num = random.randint(1, 100)
     await update.message.reply_text(f"Случайное число: {random_num}")
 
-# Угадай число
+# Начало игры
 async def game(update: Update, context: CallbackContext) -> None:
-    random_num = random.randint(1, 10)
-    await update.message.reply_text(f"Я загадал число от 1 до 10. Угадай!")
+    await update.message.reply_text(
+        "🎮 Давайте сыграем в 'Камень, ножницы, бумага'! Напишите один из вариантов: камень, ножницы или бумага."
+    )
+    context.user_data["game_active"] = True
+
+# Проверка выбора игрока
+async def check_rps(update: Update, context: CallbackContext) -> None:
+    if not context.user_data.get("game_active"):
+        await update.message.reply_text("Для начала игры введите команду /rps.")
+        return
+
+    user_choice = update.message.text.lower()
+    valid_choices = ["камень", "ножницы", "бумага"]
+    if user_choice not in valid_choices:
+        await update.message.reply_text("⛔ Пожалуйста, выберите только: камень, ножницы или бумага.")
+        return
+
+    bot_choice = random.choice(valid_choices)
+    await update.message.reply_text(f"🤖 Мой выбор: {bot_choice.capitalize()}")
+
+    # Определяем результат игры
+    if user_choice == bot_choice:
+        await update.message.reply_text("⚖️ Ничья!")
+    elif (
+        (user_choice == "камень" and bot_choice == "ножницы") or
+        (user_choice == "ножницы" and bot_choice == "бумага") or
+        (user_choice == "бумага" and bot_choice == "камень")
+    ):
+        await update.message.reply_text("🎉 Вы выиграли!")
+    else:
+        await update.message.reply_text("😢 Я выиграл!")
+
+    # Завершаем игру
+    context.user_data["game_active"] = False
+    await update.message.reply_text("Для новой игры введите команду /game.")
+
 
 # Цитаты через API
 async def quote(update: Update, context: CallbackContext) -> None:
