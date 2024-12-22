@@ -36,7 +36,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         "2. /fact - Случайный факт\n"
         "3. /movie [название] - Поиск фильмов\n"
         "4. /random - Случайное число\n"
-        "5. /game - Угадай число\n"
+        "5. /game - Камень,ножницы,бумага\n"
         "6. /quote - Случайная цитата\n"
         "7. /joke - Шутка\n"
         "8. /advice - Полезный совет\n"
