@@ -7,14 +7,14 @@ import json
 
 from numpy import number
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, ContextTypes
 import openai
 
 # Настройка логирования
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Токены и API ключи
-BOT_TOKEN = ''
+BOT_TOKEN = '8046195893:AAEfNDOtX4NYFaPqnF_oEqJ8YXjUQYHg1pA'
 OMDB_API_KEY = 'http://www.omdbapi.com/?i=tt3896198&apikey=1e3f1394'
 TRANSLATION_API_URL = "https://api.mymemory.translated.net/get"
 DOG_API_URL = "https://dog.ceo/api/breeds/image/random"
@@ -230,21 +230,34 @@ async def music(update: Update, context: CallbackContext) -> None:
         logging.error(f"Ошибка при получении музыки: {e}")
         await update.message.reply_text("Не удалось получить информацию о музыке.")
 
-# ChatGPT
-async def chatgpt(update: Update, context: CallbackContext) -> None:
+async def chatgpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     question = " ".join(context.args)
+    if not question:
+        await update.message.reply_text("Пожалуйста, задайте вопрос.")
+        return
+
     try:
+        # Настройка API-ключа
         openai.api_key = OPENAI_API_KEY
-        response = openai.Completion.create(
-            model="gpt-3.5-turbo",
-            prompt=question,
+
+        # Запрос к модели GPT-3.5
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": question}
+            ],
             max_tokens=150
         )
-        chatgpt_response = response.choices[0].text.strip()
+
+        # Извлечение ответа
+        chatgpt_response = response["choices"][0]["message"]["content"].strip()
         await update.message.reply_text(chatgpt_response)
+
     except Exception as e:
+        # Логирование ошибок
         logging.error(f"Ошибка при общении с ChatGPT: {e}")
-        await update.message.reply_text("Не удалось получить ответ от ChatGPT.")
+        await update.message.reply_text("Не удалось получить ответ от ChatGPT. Попробуйте позже.")
 
 # Поддержка
 async def support(update: Update, context: CallbackContext) -> None:
