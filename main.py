@@ -14,7 +14,7 @@ import openai
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Токены и API ключи
-BOT_TOKEN = '8046195893:AAEfNDOtX4NYFaPqnF_oEqJ8YXjUQYHg1pA'
+BOT_TOKEN = ''
 OMDB_API_KEY = 'http://www.omdbapi.com/?i=tt3896198&apikey=1e3f1394'
 TRANSLATION_API_URL = "https://api.mymemory.translated.net/get"
 DOG_API_URL = "https://dog.ceo/api/breeds/image/random"
